@@ -49,7 +49,7 @@ export default function FirebaseForm() {
       }
 
       const emailQuery = query(
-        collection(db, 'early-access-signups'), 
+        collection(db, 'signups'), 
         where('email', '==', trimmedEmail)
       );
       
@@ -69,7 +69,7 @@ export default function FirebaseForm() {
         source: 'coming-soon-page'
       };
 
-      await addDoc(collection(db, 'vpcscs-early-access'), signupData);
+      await addDoc(collection(db, 'signups'), signupData);
 
       setSubmissionState('success');
       setFirstName('');
