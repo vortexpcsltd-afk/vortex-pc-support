@@ -1,106 +1,22 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import dynamic from 'next/dynamic';
 import Image from 'next/image';
-import { db } from '../lib/firebase';
-import { collection, addDoc, query, where, getDocs } from 'firebase/firestore';
+
+const FirebaseForm = dynamic(() => import('../components/FirebaseForm'), {
+  ssr: false,
+  loading: () => (
+    <div className="text-white text-center">
+      Loading form...
+    </div>
+  )
+});
 
 export default function ComingSoonPage() {
-  const [firstName, setFirstName] = useState('');
-  const [email, setEmail] = useState('');
-  const [submitted, setSubmitted] = useState(false);
-  const [animatedText, setAnimatedText] = useState('');
-  const [typingComplete, setTypingComplete] = useState(false);
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Typing animation effect
-  useEffect(() => {
-    const fullText = "Diagnose. Repair. Save.";
-    let currentText = '';
-    let index = 0;
-
-    const typingInterval = setInterval(() => {
-      if (index < fullText.length) {
-        currentText += fullText[index];
-        setAnimatedText(currentText);
-        index++;
-      } else {
-        clearInterval(typingInterval);
-        setTimeout(() => setTypingComplete(true), 500);
-      }
-    }, 100);
-
-    return () => clearInterval(typingInterval);
-  }, []);
-
-  // Email validation
-  const isValidEmail = (email: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setIsLoading(true);
-
-    try {
-      // Validate inputs
-      if (!firstName.trim()) {
-        setError('Please enter your first name');
-        setIsLoading(false);
-        return;
-      }
-
-      if (!isValidEmail(email)) {
-        setError('Please enter a valid email address');
-        setIsLoading(false);
-        return;
-      }
-
-      console.log('Attempting to save to Firestore...');
-      console.log('Firebase db:', db);
-
-      // Check for existing email
-      const emailQuery = query(
-        collection(db, 'early-access-signups'), 
-        where('email', '==', email.toLowerCase().trim())
-      );
-      const existingEmails = await getDocs(emailQuery);
-
-      if (!existingEmails.empty) {
-        setError('This email is already registered');
-        setIsLoading(false);
-        return;
-      }
-
-      // Save to Firestore
-      const docRef = await addDoc(collection(db, 'early-access-signups'), {
-        firstName: firstName.trim(),
-        email: email.toLowerCase().trim(),
-        signupDate: new Date(),
-        timestamp: Date.now(),
-        source: 'coming-soon-page'
-      });
-
-      console.log('Document written with ID: ', docRef.id);
-      setSubmitted(true);
-      setFirstName('');
-      setEmail('');
-
-    } catch (err) {
-      console.error('Submission error:', err);
-      setError('Failed to submit. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-[#1a2980] to-[#26D0CE] animate-gradient-x text-white flex items-center justify-center p-4">
       <div className="max-w-lg w-full text-center relative">
-        {/* Floating Elements */}
         <div className="absolute -top-10 -left-10 opacity-20">
           <svg 
             className="w-32 h-32 text-[#00B4FF] animate-pulse" 
@@ -121,7 +37,6 @@ export default function ComingSoonPage() {
           </svg>
         </div>
 
-        {/* Logo Section */}
         <div className="mb-8 flex justify-center relative z-10">
           <Image 
             src="/vortexpcsupport-logo-light.png" 
@@ -133,20 +48,16 @@ export default function ComingSoonPage() {
           />
         </div>
 
-        {/* Animated Headline */}
         <h1 className="text-4xl font-bold mb-4 text-[#00B4FF] relative z-10">
-          {animatedText}
-          {!typingComplete && <span className="animate-blink">|</span>}
+          Diagnose. Repair. Save.
         </h1>
 
-        {/* Subheading */}
         <p className="mb-6 text-gray-200 text-lg leading-relaxed relative z-10">
           The UK&apos;s most comprehensive PC troubleshooting platform. Follow our expert guides 
           to diagnose and repair your computer problems yourself&mdash;potentially saving hundreds 
           of pounds in repair costs.
         </p>
 
-        {/* Value Proposition Highlights */}
         <div className="mt-8 grid grid-cols-3 gap-4 text-sm text-gray-400 mb-8">
           <div className="bg-white/10 backdrop-blur-lg rounded-lg p-4 border border-white/20 hover:bg-white/20 transition-all duration-300">
             <div className="flex items-center justify-center mb-2">
@@ -180,51 +91,8 @@ export default function ComingSoonPage() {
           </div>
         </div>
 
-        {/* Error Message */}
-        {error && (
-          <div className="mb-4 text-red-400 bg-red-900/20 p-3 rounded-lg border border-red-500/30 relative z-10">
-            {error}
-          </div>
-        )}
+        <FirebaseForm />
 
-        {/* Email Submission Section */}
-        {submitted ? (
-          <div className="bg-green-600 p-6 rounded-lg relative z-10">
-            <p className="font-bold text-xl mb-2">Brilliant!</p>
-            <p className="text-sm">
-              You&apos;re amongst the first {Math.floor(Math.random() * 100) + 50} early supporters.
-              We&apos;ll keep you updated on our launch progress.
-            </p>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-4 relative z-10">
-            <input 
-              type="text"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              placeholder="Your first name"
-              className="w-full p-3 rounded bg-white/20 backdrop-blur-lg border border-white/30 focus:outline-none focus:ring-2 focus:ring-[#00B4FF] text-white placeholder-white/70"
-              required
-            />
-            <input 
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email for early access"
-              className="w-full p-3 rounded bg-white/20 backdrop-blur-lg border border-white/30 focus:outline-none focus:ring-2 focus:ring-[#00B4FF] text-white placeholder-white/70"
-              required
-            />
-            <button 
-              type="submit" 
-              disabled={isLoading}
-              className="w-full bg-[#00B4FF] p-3 rounded hover:bg-blue-600 transition font-semibold transform hover:scale-105 active:scale-95 duration-300 disabled:opacity-50"
-            >
-              {isLoading ? 'Submitting...' : 'Get Early Access'}
-            </button>
-          </form>
-        )}
-
-        {/* Privacy Notice */}
         <p className="mt-6 text-xs text-gray-300 relative z-10">
           We respect your privacy. Unsubscribe at any time.
         </p>
