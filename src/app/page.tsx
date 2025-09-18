@@ -17,6 +17,7 @@ export default function ComingSoonPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-[#1a2980] to-[#26D0CE] animate-gradient-x text-white flex items-center justify-center p-4">
       <div className="max-w-lg w-full text-center relative">
+        {/* Floating Elements */}
         <div className="absolute -top-10 -left-10 opacity-20">
           <svg 
             className="w-32 h-32 text-[#00B4FF] animate-pulse" 
@@ -96,6 +97,18 @@ export default function ComingSoonPage() {
         <p className="mt-6 text-xs text-gray-300 relative z-10">
           We respect your privacy. Unsubscribe at any time.
         </p>
+
+        {/* Version and Copyright */}
+        <div className="absolute bottom-4 left-0 right-0 text-center text-xs text-gray-400 opacity-70">
+          <p>
+            &copy; {new Date().getFullYear()} Vortex PC Support Ltd. 
+            All rights reserved. 
+            <br />
+            Version: v1.001 
+            <br />
+            Last Updated: {new Date().toLocaleDateString()}
+          </p>
+        </div>
       </div>
     </div>
   );
