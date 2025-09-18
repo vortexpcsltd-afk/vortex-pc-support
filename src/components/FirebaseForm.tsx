@@ -2,7 +2,16 @@
 
 import React, { useState } from 'react';
 import { db } from '../lib/firebase';
-import { collection, addDoc, query, where, getDocs, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { 
+  collection, 
+  addDoc, 
+  query, 
+  where, 
+  getDocs, 
+  serverTimestamp, 
+  Timestamp,
+  FirestoreError
+} from 'firebase/firestore';
 
 interface EarlyAccessSignupData {
   firstName: string;
@@ -10,6 +19,7 @@ interface EarlyAccessSignupData {
   signupDate: Date;
   timestamp: Timestamp;
   source: string;
+  ipAddress?: string;
 }
 
 export default function FirebaseForm() {
@@ -21,6 +31,16 @@ export default function FirebaseForm() {
   const isValidEmail = (emailToValidate: string): boolean => {
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     return emailRegex.test(emailToValidate.trim());
+  };
+
+  const getClientIpAddress = async (): Promise<string> => {
+    try {
+      const response = await fetch('https://api.ipify.org?format=json');
+      const data = await response.json();
+      return data.ip;
+    } catch {
+      return 'Unknown';
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
@@ -44,42 +64,80 @@ export default function FirebaseForm() {
     setSubmissionState('submitting');
 
     try {
+      // Detailed DB Connection Check
       if (!db) {
+        console.error('Database is null. Initialization failed.');
         throw new Error('Database connection failed. Please try again later.');
       }
 
+      console.log('Attempting to query existing emails');
       const emailQuery = query(
         collection(db, 'signups'), 
         where('email', '==', trimmedEmail)
       );
       
-      const existingEmails = await getDocs(emailQuery);
+      try {
+        const existingEmails = await getDocs(emailQuery);
 
-      if (!existingEmails.empty) {
+        console.log('Existing Emails Query:', {
+          empty: existingEmails.empty,
+          size: existingEmails.size,
+          docs: existingEmails.docs.map(doc => doc.data())
+        });
+
+        if (!existingEmails.empty) {
+          setSubmissionState('error');
+          setErrorMessage('This email is already registered');
+          return;
+        }
+
+        const ipAddress = await getClientIpAddress();
+
+        const signupData: EarlyAccessSignupData = {
+          firstName: firstName.trim(),
+          email: trimmedEmail,
+          signupDate: new Date(),
+          timestamp: serverTimestamp() as Timestamp,
+          source: 'coming-soon-page',
+          ipAddress
+        };
+
+        try {
+          const docRef = await addDoc(collection(db, 'signups'), signupData);
+          console.log('Document written with ID:', docRef.id);
+
+          setSubmissionState('success');
+          setFirstName('');
+          setEmail('');
+          setErrorMessage('');
+
+        } catch (addError) {
+          console.error('Error adding document:', addError);
+          
+          if (addError instanceof FirestoreError) {
+            console.error('Firestore Error Details:', {
+              code: addError.code,
+              message: addError.message
+            });
+          }
+
+          setSubmissionState('error');
+          setErrorMessage('Failed to save signup. Please try again.');
+        }
+
+      } catch (queryError) {
+        console.error('Error in email query:', queryError);
+        
+        if (queryError instanceof FirestoreError) {
+          console.error('Firestore Query Error Details:', {
+            code: queryError.code,
+            message: queryError.message
+          });
+        }
+
         setSubmissionState('error');
-        setErrorMessage('This email is already registered');
-        return;
+        setErrorMessage('Database query failed. Please try again.');
       }
-
-      const signupData: EarlyAccessSignupData = {
-        firstName: firstName.trim(),
-        email: trimmedEmail,
-        signupDate: new Date(),
-        timestamp: serverTimestamp() as Timestamp,
-        source: 'coming-soon-page'
-      };
-
-      await addDoc(collection(db, 'signups'), signupData);
-
-      setSubmissionState('success');
-      setFirstName('');
-      setEmail('');
-      setErrorMessage('');
-
-      console.log('Early access signup successful:', {
-        email: trimmedEmail,
-        timestamp: new Date().toISOString()
-      });
 
     } catch (err: unknown) {
       console.error('Submission error:', err);

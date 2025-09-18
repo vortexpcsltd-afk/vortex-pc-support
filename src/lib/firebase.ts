@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 
 const initFirebase = () => {
   if (typeof window !== 'undefined') {
@@ -16,21 +16,22 @@ const initFirebase = () => {
       projectId: firebaseConfig.projectId,
       hasApiKey: !!firebaseConfig.apiKey,
       hasAuthDomain: !!firebaseConfig.authDomain,
-      allConfigPresent: Object.values(firebaseConfig).every(val => !!val)
+      allConfigPresent: Object.values(firebaseConfig).every(val => !!val),
+      fullConfig: JSON.stringify(firebaseConfig, null, 2),
+      envVars: {
+        apiKey: !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+        projectId: !!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID
+      }
     });
-
-    if (!firebaseConfig.projectId) {
-      console.error('Firebase Project ID is missing!');
-      return null;
-    }
 
     try {
       const app = initializeApp(firebaseConfig);
       const db = getFirestore(app);
-      console.log('Firebase initialized successfully');
+
+      console.log('Firebase initialized successfully with config:', firebaseConfig.projectId);
       return db;
     } catch (error) {
-      console.error('Firebase initialization error:', error);
+      console.error('Detailed Firebase Initialization Error:', error);
       return null;
     }
   }
