@@ -69,15 +69,30 @@ export default function FirebaseForm() {
         ipAddress
       };
 
-      await addDoc(collection(db, 'signups'), signupData);
-      
-      setSubmissionState('success');
-      setFirstName('');
-      setEmail('');
+      console.log('Attempting to add document with data:', signupData);
+
+      try {
+        const docRef = await addDoc(collection(db, 'signups'), signupData);
+        console.log('Document written with ID:', docRef.id);
+        
+        setSubmissionState('success');
+        setFirstName('');
+        setEmail('');
+      } catch (addError: any) {
+        console.error('Detailed add document error:', {
+          name: addError.name,
+          message: addError.message,
+          code: addError.code,
+          fullError: addError
+        });
+        
+        setSubmissionState('error');
+        setErrorMessage('Failed to submit. Please try again.');
+      }
     } catch (error) {
-      console.error('Signup error:', error);
+      console.error('Submission process error:', error);
       setSubmissionState('error');
-      setErrorMessage('Failed to submit. Please try again.');
+      setErrorMessage('An unexpected error occurred.');
     }
   };
 
