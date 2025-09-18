@@ -12,23 +12,23 @@ const initFirebase = () => {
       appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
     };
 
-    // Use type-safe logging
-    console.log('Firebase Config:', {
-      apiKey: !!firebaseConfig.apiKey,
+    console.log('Firebase Config Debug:', {
       projectId: firebaseConfig.projectId,
-      fullConfig: Object.fromEntries(
-        Object.entries(firebaseConfig).map(([key, value]) => [key, value ? 'PRESENT' : 'MISSING'])
-      )
+      hasApiKey: !!firebaseConfig.apiKey,
+      hasAuthDomain: !!firebaseConfig.authDomain,
+      allConfigPresent: Object.values(firebaseConfig).every(val => !!val)
     });
 
-    if (!firebaseConfig.apiKey) {
-      console.error('Firebase API Key is missing!');
+    if (!firebaseConfig.projectId) {
+      console.error('Firebase Project ID is missing!');
       return null;
     }
 
     try {
       const app = initializeApp(firebaseConfig);
-      return getFirestore(app);
+      const db = getFirestore(app);
+      console.log('Firebase initialized successfully');
+      return db;
     } catch (error) {
       console.error('Firebase initialization error:', error);
       return null;
