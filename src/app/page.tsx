@@ -2,12 +2,17 @@
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
+import { db } from '../lib/firebase';
+import { collection, addDoc, query, where, getDocs } from 'firebase/firestore';
 
 export default function ComingSoonPage() {
+  const [firstName, setFirstName] = useState('');
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [animatedText, setAnimatedText] = useState('');
   const [typingComplete, setTypingComplete] = useState(false);
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   // Typing animation effect
   useEffect(() => {
@@ -35,16 +40,61 @@ export default function ComingSoonPage() {
     return emailRegex.test(email);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!isValidEmail(email)) {
-      alert('Please enter a valid email address');
-      return;
-    }
+    setError('');
+    setIsLoading(true);
 
-    console.log('Submitted email:', email);
-    setSubmitted(true);
+    try {
+      // Validate inputs
+      if (!firstName.trim()) {
+        setError('Please enter your first name');
+        setIsLoading(false);
+        return;
+      }
+
+      if (!isValidEmail(email)) {
+        setError('Please enter a valid email address');
+        setIsLoading(false);
+        return;
+      }
+
+      console.log('Attempting to save to Firestore...');
+      console.log('Firebase db:', db);
+
+      // Check for existing email
+      const emailQuery = query(
+        collection(db, 'early-access-signups'), 
+        where('email', '==', email.toLowerCase().trim())
+      );
+      const existingEmails = await getDocs(emailQuery);
+
+      if (!existingEmails.empty) {
+        setError('This email is already registered');
+        setIsLoading(false);
+        return;
+      }
+
+      // Save to Firestore
+      const docRef = await addDoc(collection(db, 'early-access-signups'), {
+        firstName: firstName.trim(),
+        email: email.toLowerCase().trim(),
+        signupDate: new Date(),
+        timestamp: Date.now(),
+        source: 'coming-soon-page'
+      });
+
+      console.log('Document written with ID: ', docRef.id);
+      setSubmitted(true);
+      setFirstName('');
+      setEmail('');
+
+    } catch (err) {
+      console.error('Submission error:', err);
+      setError('Failed to submit. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -130,6 +180,13 @@ export default function ComingSoonPage() {
           </div>
         </div>
 
+        {/* Error Message */}
+        {error && (
+          <div className="mb-4 text-red-400 bg-red-900/20 p-3 rounded-lg border border-red-500/30 relative z-10">
+            {error}
+          </div>
+        )}
+
         {/* Email Submission Section */}
         {submitted ? (
           <div className="bg-green-600 p-6 rounded-lg relative z-10">
@@ -142,6 +199,14 @@ export default function ComingSoonPage() {
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4 relative z-10">
             <input 
+              type="text"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              placeholder="Your first name"
+              className="w-full p-3 rounded bg-white/20 backdrop-blur-lg border border-white/30 focus:outline-none focus:ring-2 focus:ring-[#00B4FF] text-white placeholder-white/70"
+              required
+            />
+            <input 
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -151,9 +216,10 @@ export default function ComingSoonPage() {
             />
             <button 
               type="submit" 
-              className="w-full bg-[#00B4FF] p-3 rounded hover:bg-blue-600 transition font-semibold transform hover:scale-105 active:scale-95 duration-300"
+              disabled={isLoading}
+              className="w-full bg-[#00B4FF] p-3 rounded hover:bg-blue-600 transition font-semibold transform hover:scale-105 active:scale-95 duration-300 disabled:opacity-50"
             >
-              Get Early Access
+              {isLoading ? 'Submitting...' : 'Get Early Access'}
             </button>
           </form>
         )}
