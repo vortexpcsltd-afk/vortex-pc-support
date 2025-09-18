@@ -1,41 +1,34 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 
-const initFirebase = () => {
-  if (typeof window !== 'undefined') {
-    const firebaseConfig = {
-      apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-      authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-      storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-      messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-      appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
-    };
-
-    console.log('Firebase Config Debug:', {
-      projectId: firebaseConfig.projectId,
-      hasApiKey: !!firebaseConfig.apiKey,
-      hasAuthDomain: !!firebaseConfig.authDomain,
-      allConfigPresent: Object.values(firebaseConfig).every(val => !!val),
-      fullConfig: JSON.stringify(firebaseConfig, null, 2),
-      envVars: {
-        apiKey: !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-        projectId: !!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID
-      }
-    });
-
-    try {
-      const app = initializeApp(firebaseConfig);
-      const db = getFirestore(app);
-
-      console.log('Firebase initialized successfully with config:', firebaseConfig.projectId);
-      return db;
-    } catch (error) {
-      console.error('Detailed Firebase Initialization Error:', error);
-      return null;
-    }
-  }
-  return null;
+const firebaseConfig = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
 };
 
-export const db = initFirebase();
+// Validate configuration
+const validateConfig = (config: typeof firebaseConfig) => {
+  const missingKeys = Object.entries(config)
+    .filter(([_, value]) => !value)
+    .map(([key]) => key);
+
+  if (missingKeys.length > 0) {
+    console.error('Missing Firebase configuration keys:', missingKeys);
+    throw new Error(`Missing Firebase config: ${missingKeys.join(', ')}`);
+  }
+
+  console.log('Firebase Configuration Validation:', {
+    projectId: config.projectId,
+    configComplete: Object.values(config).every(value => !!value)
+  });
+};
+
+validateConfig(firebaseConfig);
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+export const db = getFirestore(app);

@@ -104,7 +104,7 @@ export default function ComingSoonPage() {
             &copy; 2025 Vortex PC Support Ltd. 
             All rights reserved. 
             <br />
-            Version: v1.0.03
+            Version: v1.0.04
             <br />
             Last Updated: 18/09/2025
           </p>

@@ -6,28 +6,22 @@ import {
   collection, 
   addDoc, 
   serverTimestamp, 
-  Timestamp
+  Timestamp 
 } from 'firebase/firestore';
 
-interface EarlyAccessSignupData {
+interface SignupData {
   firstName: string;
   email: string;
-  signupDate: Date;
   timestamp: Timestamp;
   source: string;
   ipAddress?: string;
 }
 
-const FirebaseForm: React.FC = () => {
-  const [firstName, setFirstName] = useState<string>('');
-  const [email, setEmail] = useState<string>('');
+export default function FirebaseForm() {
+  const [firstName, setFirstName] = useState('');
+  const [email, setEmail] = useState('');
   const [submissionState, setSubmissionState] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
-  const [errorMessage, setErrorMessage] = useState<string>('');
-
-  const isValidEmail = (emailToValidate: string): boolean => {
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    return emailRegex.test(emailToValidate.trim());
-  };
+  const [errorMessage, setErrorMessage] = useState('');
 
   const getClientIpAddress = async (): Promise<string> => {
     try {
@@ -39,66 +33,57 @@ const FirebaseForm: React.FC = () => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
+  const isValidEmail = (emailToValidate: string): boolean => {
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    return emailRegex.test(emailToValidate.trim());
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+    setSubmissionState('submitting');
     setErrorMessage('');
-    
+
+    // Validate first name
     if (!firstName.trim()) {
       setSubmissionState('error');
       setErrorMessage('Please enter your first name');
       return;
     }
 
-    const trimmedEmail = email.toLowerCase().trim();
+    // Validate email
+    const trimmedEmail = email.trim().toLowerCase();
     if (!isValidEmail(trimmedEmail)) {
       setSubmissionState('error');
       setErrorMessage('Please enter a valid email address');
       return;
     }
 
-    setSubmissionState('submitting');
-
     try {
-      if (!db) {
-        console.error('Database is null. Initialization failed.');
-        throw new Error('Database connection failed. Please try again later.');
-      }
-
       const ipAddress = await getClientIpAddress();
 
-      const signupData: EarlyAccessSignupData = {
+      const signupData: SignupData = {
         firstName: firstName.trim(),
         email: trimmedEmail,
-        signupDate: new Date(),
         timestamp: serverTimestamp() as Timestamp,
-        source: 'coming-soon-page',
+        source: 'landing-page',
         ipAddress
       };
 
-      const docRef = await addDoc(collection(db, 'signups'), signupData);
-      console.log('Document written with ID:', docRef.id);
-
+      await addDoc(collection(db, 'signups'), signupData);
+      
       setSubmissionState('success');
       setFirstName('');
       setEmail('');
-      setErrorMessage('');
-
-    } catch (err: unknown) {
-      console.error('Submission error:', err);
+    } catch (error) {
+      console.error('Signup error:', error);
       setSubmissionState('error');
-      
-      if (err instanceof Error) {
-        setErrorMessage(err.message);
-      } else {
-        setErrorMessage('An unexpected error occurred. Please try again.');
-      }
+      setErrorMessage('Failed to submit. Please try again.');
     }
   };
 
   if (submissionState === 'success') {
     return (
-      <div className="bg-green-600 p-6 rounded-lg relative z-10">
+      <div className="bg-green-600 p-6 rounded-lg relative z-10 text-white">
         <p className="font-bold text-xl mb-2">Brilliant!</p>
         <p className="text-sm">
           You&apos;re amongst the first {Math.floor(Math.random() * 100) + 50} early supporters.
@@ -147,6 +132,4 @@ const FirebaseForm: React.FC = () => {
       </button>
     </form>
   );
-};
-
-export default FirebaseForm;
+}
