@@ -69,7 +69,7 @@ export default function FirebaseForm() {
         source: 'coming-soon-page'
       };
 
-      await addDoc(collection(db, 'early-access-signups'), signupData);
+      await addDoc(collection(db, 'vpcscs-early-access'), signupData);
 
       setSubmissionState('success');
       setFirstName('');
