@@ -1,7 +1,15 @@
 'use client'
 
 import React from 'react'
-import { notificationService } from '../../lib/notification-service'
+
+// Import with error handling
+let notificationService: any = null
+try {
+  const notificationModule = require('../../lib/notification-service')
+  notificationService = notificationModule.notificationService
+} catch (error) {
+  console.warn('Notification service not available:', error)
+}
 
 export default function NotificationSettings() {
   const [webhookUrl, setWebhookUrl] = React.useState('')
@@ -11,7 +19,7 @@ export default function NotificationSettings() {
   )
 
   const requestBrowserNotifications = async () => {
-    if ('Notification' in window) {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
       const permission = await Notification.requestPermission()
       setNotificationPermission(permission)
     }
@@ -19,8 +27,12 @@ export default function NotificationSettings() {
 
   const testNotifications = async () => {
     try {
-      await notificationService.testNotifications()
-      alert('Test notifications sent! Check your browser, email, and webhook endpoints.')
+      if (notificationService) {
+        await notificationService.testNotifications()
+        alert('Test notifications sent! Check your browser, email, and webhook endpoints.')
+      } else {
+        alert('Notification service not available.')
+      }
     } catch (error) {
       console.error('Test failed:', error)
       alert('Test failed. Check the console for details.')
@@ -115,19 +127,6 @@ export default function NotificationSettings() {
             </div>
           </div>
 
-          {/* Notification History */}
-          <div className="border-b border-gray-200 pb-6">
-            <h3 className="text-lg font-semibold mb-2 text-gray-900">Notification History</h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Recent notification activity will be displayed here.
-            </p>
-            <div className="bg-gray-50 rounded-md p-4">
-              <p className="text-sm text-gray-500 italic">
-                No recent notifications. New user signups will appear here.
-              </p>
-            </div>
-          </div>
-
           {/* Test Notifications */}
           <div>
             <h3 className="text-lg font-semibold mb-2 text-gray-900">Test Notifications</h3>
@@ -143,30 +142,6 @@ export default function NotificationSettings() {
             <p className="text-xs text-gray-500 mt-2">
               This will send test notifications using your current settings.
             </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Setup Guide */}
-      <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-blue-900 mb-3">Quick Setup Guide</h3>
-        <div className="space-y-3 text-sm text-blue-800">
-          <div>
-            <strong>1. Browser Notifications:</strong> Click "Enable Notifications" above and allow permissions when prompted.
-          </div>
-          <div>
-            <strong>2. Email Setup:</strong> Configure your email service in the API endpoint (/api/send-email).
-          </div>
-          <div>
-            <strong>3. Slack Integration:</strong>
-            <ul className="ml-4 mt-1 space-y-1">
-              <li>• Go to your Slack workspace settings</li>
-              <li>• Create an incoming webhook</li>
-              <li>• Copy the webhook URL and paste it above</li>
-            </ul>
-          </div>
-          <div>
-            <strong>4. Test:</strong> Use the "Send Test Notification" button to verify everything works.
           </div>
         </div>
       </div>
